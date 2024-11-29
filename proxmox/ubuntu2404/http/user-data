@@ -1,0 +1,44 @@
+#cloud-config
+autoinstall:
+  version: 1
+  locale: en_US
+  keyboard:
+    layout: us
+  apt:
+    preserve_sources_list: false
+    primary:
+      - arches: [amd64]
+        uri: "http://archive.ubuntu.com/ubuntu"
+  storage:
+    layout:
+      name: direct
+  network:
+    version: 2
+    ethernets:
+      ens18:
+        dhcp4: true
+  identity:
+    hostname: ubuntu
+    username: ubuntu
+    password: "$6$exDY1mhS4KUYCE/2$zmn9ToZwTKLhCw.b4/b.ZRTIZM30JZ4QrOQ2aOXJ8yk96xpcCof0kxKwuX1kqLG/ygbJ1f8wxED22bTL4F46P0"
+  ssh:
+    install-server: true
+    allow-pw: true
+  packages:
+    - qemu-guest-agent
+    - cloud-init
+    - openssh-server
+  user-data:
+    disable_root: true
+  package_update: true
+  package_upgrade: true
+  early-commands:
+    - systemctl stop systemd-networkd-wait-online.service
+    - systemctl mask systemd-networkd-wait-online.service
+    - echo 'DefaultTimeoutStartSec=30s' >> /etc/systemd/system.conf
+    - systemctl daemon-reload
+  late-commands:
+    - echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/ubuntu
+    - chmod 440 /target/etc/sudoers.d/ubuntu
+    - curtin in-target --target=/target -- systemctl enable qemu-guest-agent
+    - sed -i 's/^#*\(send dhcp-client-identifier\).*$/\1 = hardware;/' /target/etc/dhcp/dhclient.conf
